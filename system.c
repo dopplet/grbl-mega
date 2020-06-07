@@ -187,14 +187,6 @@ uint8_t system_execute_line(char *line)
             if (line[2] == 0) { system_execute_startup(line); }
           }
           break;
-		// APH
-		case '@' : // Perform Fake Homing Cycle, reset G53 Coordinates
-		  sys.state = STATE_HOMING;
-		  for (aphidx=0; aphidx<N_AXIS; aphidx++) {
-		  sys_position[aphidx] = 0; }
-	      sys.state = STATE_IDLE;
-		  break;
-		// APH
         case 'S' : // Puts Grbl to sleep [IDLE/ALARM]
           if ((line[2] != 'L') || (line[3] != 'P') || (line[4] != 0)) { return(STATUS_INVALID_STATEMENT); }
           system_set_exec_state_flag(EXEC_SLEEP); // Set to execute sleep mode immediately
@@ -246,6 +238,15 @@ uint8_t system_execute_line(char *line)
             helper_var = true;  // Set helper_var to flag storing method.
             // No break. Continues into default: to read remaining command characters.
           }
+        // APH 20200416
+		case '@' : // My Reset Machine (G53) Coordinates
+		  sys.state = STATE_HOMING;
+		  memset(sys_position,0,sizeof(sys_position)); // Clear machine position.
+		  gc_sync_position();
+          plan_sync_position();
+		  sys.state = STATE_IDLE;
+		  break;
+		// APH 20200416		
         default :  // Storing setting methods [IDLE/ALARM]
           if(!read_float(line, &char_counter, &parameter)) { return(STATUS_BAD_NUMBER_FORMAT); }
           if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
